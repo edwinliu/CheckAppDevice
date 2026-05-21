@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.26"
+        android:pathData="M33,82l20,18l31,-31l-12,-12z" />
+    <path
+        android:fillColor="#0F1B2D"
+        android:pathData="M54,16l30,9v22c0,21 -12,36 -30,45c-18,-9 -30,-24 -30,-45v-22z" />
+    <path
+        android:fillColor="#1B2F48"
+        android:pathData="M54,21l24,7v19c0,17 -9,29 -24,37c-15,-8 -24,-20 -24,-37v-19z" />
+    <path
+        android:fillColor="#2EE6A6"
+        android:fillAlpha="0.16"
+        android:pathData="M54,21l24,7v19c0,17 -9,29 -24,37z" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,16l30,9v22c0,21 -12,36 -30,45c-18,-9 -30,-24 -30,-45v-22z"
+        android:strokeWidth="3.2"
+        android:strokeColor="#9BF8D8"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#0A1424"
+        android:pathData="M41,34h26a4,4 0,0 1,4 4v30a4,4 0,0 1,-4 4h-26a4,4 0,0 1,-4 -4v-30a4,4 0,0 1,4 -4z" />
+    <path
+        android:fillColor="#17263A"
+        android:pathData="M43,39h22a2,2 0,0 1,2 2v23a2,2 0,0 1,-2 2h-22a2,2 0,0 1,-2 -2v-23a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#2EE6A6"
+        android:pathData="M47,45h14v4h-14zM47,55h8v4h-8z" />
+    <path
+        android:fillColor="#4CC9F0"
+        android:pathData="M59,55h4v4h-4z" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,48c-6,0 -11,5 -11,11M65,59c0,-6 -5,-11 -11,-11M47,62c2,4 5,6 9,6M61,65c3,-2 5,-5 5,-9M50,57c0,-3 2,-5 5,-5c3,0 5,2 5,5M53,63c3,1 6,-1 6,-5"
+        android:strokeWidth="2.1"
+        android:strokeColor="#DFFEF5"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M22,46h9M77,46h9M54,18v-8M54,98v-8M28,32l7,6M80,32l-7,6M28,72l7,-6M80,72l-7,-6"
+        android:strokeWidth="2.2"
+        android:strokeColor="#4CC9F0"
+        android:strokeAlpha="0.78"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#9BF8D8"
+        android:pathData="M76,69l5,5l12,-14l4,4l-16,19l-9,-10z" />
+</vector>

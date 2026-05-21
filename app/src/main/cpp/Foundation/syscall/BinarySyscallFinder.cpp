@@ -1,0 +1,102 @@
+#include <stdio.h>
+#include <limits.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "BinarySyscallFinder.h"
+#include "log.h"
+#include <fcntl.h>
+#include <string>
+
+typedef unsigned long addr_t;
+
+#if defined(__aarch64__)
+#define AARCH64_SVC_0 0xD4000001    // svc 地址
+#define AARCH64_IS_MOV(insn) ((int32_t)((insn) & 0xFFE0001F) == 0xD2800008)
+
+void search_memory_syscall(const char *path, addr_t begin, addr_t end,bool (*callback)(const char *, int, void *)) {
+    addr_t start = begin;
+    addr_t end1 = end - sizeof(int32_t) * 2;
+    do {
+        int32_t *insn = reinterpret_cast<int32_t *>(start);
+        if (insn[1] == AARCH64_SVC_0 && AARCH64_IS_MOV(insn[0])) {
+            unsigned syscall_num = (unsigned) ((insn[0] >> 5) & 0xFFFF);  //系统调用号
+            if (!(*callback)(path, syscall_num, insn)) {    // 回调方法
+                break;
+            }
+        }
+        start += sizeof(int32_t);
+    } while (start < end1);
+}
+#elif defined(__arm__)
+
+#define ARM_IS_MOV_R7_IMM(insn) (((insn) & 0xFF00F000) == 0xE3007000)
+
+void
+search_memory_syscall(const char *path, addr_t begin, addr_t end,
+                      bool (*callback)(const char *, int, void *)) {
+    addr_t start = begin;
+    addr_t limit = end - sizeof(int32_t) * 4;
+    do {
+        int32_t *insn = reinterpret_cast<int32_t *>(start);
+        if (insn[0] == 0xE1A0C007 && ARM_IS_MOV_R7_IMM(insn[1]) && insn[2] == 0xEF000000) {
+            int32_t value = insn[1];
+            int syscall = ((value & 0xF0000) >> 4) | (value & 0x00FFF);
+            (*callback)(path, syscall, NULL);
+        }
+        start += 1;
+    } while (start < limit);
+}
+
+#elif defined(__i386__)
+void
+search_memory_syscall(const char *path, addr_t begin, addr_t end,
+                      bool (*callback)(const char *, int, void *)) {
+
+}
+#endif
+
+
+bool has_code(const char *perm) {
+    bool r = false, x = false,p = false;
+    for (int i = 0; i < 5; ++i) {
+        if (perm[i] == 'r') {
+            r = true;
+        }
+        if (perm[i] == 'x') {
+            x = true;
+        }
+        if (perm[i] == 'p') {
+            p = true;
+        }
+    }
+
+    return x && p;
+
+//    return r && x;
+}
+
+bool findSyscalls(const char *path, bool (*callback)(const char *, int, void *)) {
+    FILE *f;
+    if ((f = fopen("/proc/self/maps", "r")) == NULL) {
+        return false;
+    }
+    char buf[PATH_MAX + 100], perm[5], dev[6], mapname[PATH_MAX];
+    addr_t begin, end, inode, foo;
+
+    while (!feof(f)) {
+        char* ret = fgets(buf, sizeof(buf), f);
+        //  /apex/com.android.runtime/lib64/bionic/libc.so
+        if (ret== nullptr)
+            break;
+        mapname[0] = '\0';
+        sscanf(buf, "%lx-%lx %4s %lx %5s %ld %s", &begin, &end, perm,&foo, dev, &inode, mapname);
+        if (strstr(buf, path) && has_code(perm)) {
+//            ALOGE("lib22 :%s",path);
+            search_memory_syscall(path, begin, end, callback);
+            return true;
+        }
+    }
+    fclose(f);
+    return false;
+}
