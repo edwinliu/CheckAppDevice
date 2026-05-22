@@ -2,6 +2,7 @@ package com.deviceveil.guard;
 
 public class Constants {
     public static final String MODULE_PACKAGE = "com.deviceveil.guard";
+    public static final String CONFIG_PROVIDER_AUTHORITY = MODULE_PACKAGE + ".config";
     public static final String DEFAULT_TARGET_PACKAGE = "";
     public static volatile String TARGET_PACKAGE = DEFAULT_TARGET_PACKAGE;
     private static final String DEFAULT_DATA_DIR = "/data/data";

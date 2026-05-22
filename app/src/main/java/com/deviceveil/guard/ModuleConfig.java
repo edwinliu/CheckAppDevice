@@ -2,6 +2,7 @@ package com.deviceveil.guard;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.util.Xml;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -96,14 +97,21 @@ public class ModuleConfig {
     private final SharedPreferences prefs;
     private final XSharedPreferences xPrefs;
     private final Map<String, Object> filePrefs;
+    private final String sourceDescription;
     private static volatile ModuleConfig cachedXposedConfig;
     private static volatile long cachedPrefsModified = Long.MIN_VALUE;
     private static volatile long cachedPrefsSize = Long.MIN_VALUE;
 
     private ModuleConfig(SharedPreferences prefs, XSharedPreferences xPrefs, Map<String, Object> filePrefs) {
+        this(prefs, xPrefs, filePrefs, null);
+    }
+
+    private ModuleConfig(SharedPreferences prefs, XSharedPreferences xPrefs,
+                         Map<String, Object> filePrefs, String sourceDescription) {
         this.prefs = prefs;
         this.xPrefs = xPrefs;
         this.filePrefs = filePrefs;
+        this.sourceDescription = sourceDescription;
     }
 
     public static ModuleConfig fromContext(Context context) {
@@ -114,8 +122,16 @@ public class ModuleConfig {
         return fromXposed(false);
     }
 
+    public static ModuleConfig fromProvider(Context context) {
+        Map<String, Object> providerPrefs = loadPrefsFromProvider(context);
+        if (providerPrefs == null || providerPrefs.isEmpty()) {
+            return fromXposed(true);
+        }
+        return new ModuleConfig(null, null, providerPrefs, "provider");
+    }
+
     public static synchronized ModuleConfig fromXposed(boolean forceReload) {
-        File prefsFile = getPrefsFile();
+        File prefsFile = getBestXposedPrefsFile();
         long modified = prefsFile.exists() ? prefsFile.lastModified() : -1L;
         long size = prefsFile.exists() ? prefsFile.length() : -1L;
         if (!forceReload
@@ -142,6 +158,9 @@ public class ModuleConfig {
     }
 
     public String getSourceDescription() {
+        if (sourceDescription != null) {
+            return sourceDescription;
+        }
         if (prefs != null) {
             return "context";
         }
@@ -347,7 +366,10 @@ public class ModuleConfig {
             }
             return Boolean.parseBoolean(String.valueOf(value));
         }
-        return prefs != null ? prefs.getBoolean(key, defaultValue) : xPrefs.getBoolean(key, defaultValue);
+        if (prefs != null) {
+            return prefs.getBoolean(key, defaultValue);
+        }
+        return xPrefs != null ? xPrefs.getBoolean(key, defaultValue) : defaultValue;
     }
 
     private String getString(String key, String defaultValue) {
@@ -355,7 +377,10 @@ public class ModuleConfig {
             Object value = filePrefs.get(key);
             return value != null ? String.valueOf(value) : defaultValue;
         }
-        return prefs != null ? prefs.getString(key, defaultValue) : xPrefs.getString(key, defaultValue);
+        if (prefs != null) {
+            return prefs.getString(key, defaultValue);
+        }
+        return xPrefs != null ? xPrefs.getString(key, defaultValue) : defaultValue;
     }
 
     private long getLong(String key, long defaultValue) {
@@ -370,11 +395,52 @@ public class ModuleConfig {
                 return defaultValue;
             }
         }
-        return prefs != null ? prefs.getLong(key, defaultValue) : xPrefs.getLong(key, defaultValue);
+        if (prefs != null) {
+            return prefs.getLong(key, defaultValue);
+        }
+        return xPrefs != null ? xPrefs.getLong(key, defaultValue) : defaultValue;
+    }
+
+    private static Map<String, Object> loadPrefsFromProvider(Context context) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (context == null) {
+            return out;
+        }
+        try (Cursor cursor = context.getContentResolver().query(
+                ConfigProvider.CONFIG_URI,
+                null,
+                null,
+                null,
+                null)) {
+            if (cursor == null) {
+                return out;
+            }
+            int keyIndex = cursor.getColumnIndex(ConfigProvider.COLUMN_KEY);
+            int typeIndex = cursor.getColumnIndex(ConfigProvider.COLUMN_TYPE);
+            int valueIndex = cursor.getColumnIndex(ConfigProvider.COLUMN_VALUE);
+            while (cursor.moveToNext()) {
+                String key = cursor.getString(keyIndex);
+                String type = cursor.getString(typeIndex);
+                String value = cursor.getString(valueIndex);
+                if (key == null || type == null) {
+                    continue;
+                }
+                if ("boolean".equals(type)) {
+                    out.put(key, Boolean.parseBoolean(value));
+                } else if ("long".equals(type) || "int".equals(type)) {
+                    out.put(key, Long.parseLong(value));
+                } else {
+                    out.put(key, value);
+                }
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[设备信息记录]---[ModuleConfig] Provider 读取配置失败: " + t);
+        }
+        return out;
     }
 
     private static Map<String, Object> loadPrefsFile() {
-        return loadPrefsFile(getPrefsFile());
+        return loadPrefsFile(getBestXposedPrefsFile());
     }
 
     private static Map<String, Object> loadPrefsFile(File file) {
@@ -416,6 +482,10 @@ public class ModuleConfig {
     private static File getPrefsFile() {
         return new File("/data/data/" + Constants.MODULE_PACKAGE
                 + "/shared_prefs/" + PREFS_NAME + ".xml");
+    }
+
+    private static File getBestXposedPrefsFile() {
+        return getPrefsFile();
     }
 
     public static String normalizePackageInput(String input) {

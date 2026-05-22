@@ -213,7 +213,9 @@ public class MainActivity extends AppCompatActivity {
         ModuleConfig.invalidateCache();
         makePreferencesReadable();
         if (showToast) {
-            Toast.makeText(this, "已保存。请强制停止目标应用后重新打开，使 Hook 配置生效。", Toast.LENGTH_LONG).show();
+            Toast.makeText(this,
+                    "已保存配置。请强制停止目标应用后重新打开。",
+                    Toast.LENGTH_LONG).show();
         }
         refreshStatusViews();
     }
@@ -519,6 +521,7 @@ public class MainActivity extends AppCompatActivity {
         diagnosticsContainer.addView(text("稳定模式: " + yesNo(prefs.getBoolean(ModuleConfig.KEY_STABLE_MODE, true)), 13, false));
         diagnosticsContainer.addView(text("配置文件: " + (prefsFile.exists() ? prefsFile.getAbsolutePath() : "未生成"), 13, false));
         diagnosticsContainer.addView(text("配置已设为全局可读: " + yesNo(prefsFile.exists() && prefsFile.canRead()), 13, false));
+        diagnosticsContainer.addView(text("配置读取方式: ContentProvider / XSharedPreferences", 13, false));
         diagnosticsContainer.addView(text("已启用 Hook: " + enabledModuleCount() + " / " + ModuleConfig.moduleLabels().size(), 13, false));
         diagnosticsContainer.addView(text("Native Hook: " + (prefs.getBoolean(ModuleConfig.MODULE_NATIVE,
                 ModuleConfig.getDefaultModuleEnabled(ModuleConfig.MODULE_NATIVE)) ? "目标进程启动时加载" : "已关闭"), 13, false));

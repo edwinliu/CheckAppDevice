@@ -40,6 +40,7 @@ import static com.deviceveil.guard.RandomIdGenerator.generateRandomLocaleLanguag
 import static com.deviceveil.guard.RandomIdGenerator.generateRandomLocaleCountry;
 
 import android.app.Application;
+import android.content.Context;
 import android.util.Log;
 
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.FileUtils;
@@ -630,6 +631,14 @@ public class HookInit implements IXposedHookLoadPackage /* , IXposedHookZygoteIn
                 + ", process=" + safeProcess(lpparam)
                 + ", classLoader=" + (lpparam != null ? lpparam.classLoader : null));
 
+        if (lpparam != null && lpparam.appInfo != null) {
+            Constants.initTargetDataDir(lpparam.appInfo.dataDir);
+        }
+
+        if (tryHookAfterApplicationAttach(lpparam)) {
+            return;
+        }
+
         ModuleConfig moduleConfig;
         try {
             moduleConfig = ModuleConfig.fromXposed();
@@ -643,6 +652,62 @@ public class HookInit implements IXposedHookLoadPackage /* , IXposedHookZygoteIn
             return;
         }
 
+        initHooksWithConfig(lpparam, moduleConfig);
+    }
+
+    private boolean tryHookAfterApplicationAttach(XC_LoadPackage.LoadPackageParam lpparam) {
+        if (lpparam == null || Constants.MODULE_PACKAGE.equals(lpparam.packageName)) {
+            return false;
+        }
+        try {
+            XposedHelpers.findAndHookMethod(Application.class,
+                    "attach",
+                    Context.class,
+                    new XC_MethodHook() {
+                        private boolean initialized;
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            if (initialized) {
+                                return;
+                            }
+                            initialized = true;
+                            Context context = (Context) param.args[0];
+                            if (context != null) {
+                                Constants.initTargetDataDir(context.getApplicationInfo().dataDir);
+                            }
+                            ModuleConfig moduleConfig;
+                            try {
+                                moduleConfig = ModuleConfig.fromProvider(context);
+                                ModuleRuntime.setConfig(moduleConfig);
+                            } catch (Throwable t) {
+                                logAlways("Provider 读取模块配置失败，回退 XSharedPreferences: package="
+                                        + safePackage(lpparam)
+                                        + ", process=" + safeProcess(lpparam)
+                                        + ", error=" + Log.getStackTraceString(t));
+                                moduleConfig = ModuleConfig.fromXposed(true);
+                                ModuleRuntime.setConfig(moduleConfig);
+                            }
+                            initHooksWithConfig(lpparam, moduleConfig);
+                        }
+                    });
+            logAlways("已挂载 Application.attach 配置读取: package=" + safePackage(lpparam)
+                    + ", process=" + safeProcess(lpparam));
+            return true;
+        } catch (Throwable t) {
+            logAlways("挂载 Application.attach 失败，使用早期配置读取: package="
+                    + safePackage(lpparam)
+                    + ", process=" + safeProcess(lpparam)
+                    + ", error=" + Log.getStackTraceString(t));
+            return false;
+        }
+    }
+
+    private void initHooksWithConfig(XC_LoadPackage.LoadPackageParam lpparam,
+                                     ModuleConfig moduleConfig) {
+        if (lpparam == null || moduleConfig == null) {
+            return;
+        }
         boolean hasConfiguredTargets = !moduleConfig.getTargetPackages().isEmpty();
         String matchedTarget = getMatchedTargetPackage(moduleConfig, lpparam);
         boolean usingLspScopeFallback = matchedTarget == null
@@ -670,13 +735,11 @@ public class HookInit implements IXposedHookLoadPackage /* , IXposedHookZygoteIn
 
         Constants.setRuntimeTargetPackage(lpparam.packageName);
         ModuleRuntime.setTargetPackageName(lpparam.packageName);
-        if (lpparam.appInfo != null) {
-            Constants.initTargetDataDir(lpparam.appInfo.dataDir);
-        }
         MonitorReporter.init(lpparam);
 
         ensureFakeDeviceInfo(moduleConfig.getProfileResetToken());
 
+        runIfEnabled(ModuleConfig.MODULE_NATIVE, () -> NativeHooks.init(), "NativeHooks");
 
         initSekiroIfNeeded(lpparam);
 
@@ -721,7 +784,6 @@ public class HookInit implements IXposedHookLoadPackage /* , IXposedHookZygoteIn
         runIfEnabled(ModuleConfig.MODULE_MISSING_INFO, () -> MissingInfoHook.initHooks(lpparam), "MissingInfoHook");
         runIfEnabled(ModuleConfig.MODULE_FLUTTER_RN, () -> FlutterRnHook.initHooks(lpparam), "FlutterRnHook");
         runIfEnabled(ModuleConfig.MODULE_SYSTEM_PROPERTIES, () -> SystemPropertiesFakeHook.initHooks(lpparam), "SystemPropertiesFakeHook");
-        runIfEnabled(ModuleConfig.MODULE_NATIVE, () -> NativeHooks.init(), "NativeHooks");
 
         XposedBridge.log(TAG + "✅ 已启用 Hook 初始化完成");
     }
