@@ -9,12 +9,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "/Users/corner/Library/Android/sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/stdbool.h"
-#include "/Users/corner/Library/Android/sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/stdint.h"
+//#include "/Users/corner/Library/Android/sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/stdbool.h"
+//#include "/Users/corner/Library/Android/sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/stdint.h"
 
 
-//#include "/Users/hb25492/Library/Android/sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/stdbool.h"
-//#include "/Users/hb25492/Library/Android/sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/stdint.h"
+#include "D:\ProgramFiles\Android\Sdk\ndk\25.0.8775105\toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\include\c++\v1\stdbool.h"
+#include "D:\ProgramFiles\Android\Sdk\ndk\25.0.8775105\toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\include\c++\v1\stdint.h"
 
 
 
